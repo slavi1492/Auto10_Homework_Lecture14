@@ -53,7 +53,7 @@ public class LoginScenariosTests {
         wait = new WebDriverWait(driver, Duration.ofSeconds(5));
 
     }
-
+// Positive scenario test
 
     @Test(groups = "PositiveTest", dataProvider = "validUser")
     // @Parameters ({"username", "password"})
@@ -118,6 +118,8 @@ public class LoginScenariosTests {
         Assert.assertEquals(signInOutMessageBoxText.trim(), "Successful logout!");
         wait.until(ExpectedConditions.invisibilityOf(navBarProfileButton));
     }
+
+// Negative scenario test
 
     @Test(groups = "negativeTests", dataProvider = "invalidUser")
     public void negativeLoginTest(String invalidUsername, String invalidPassword, String errorMessage) {
