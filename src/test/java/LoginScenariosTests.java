@@ -6,6 +6,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
 import org.testng.annotations.*;
 
 import java.time.Duration;
@@ -16,16 +17,28 @@ import java.util.concurrent.TimeUnit;
 public class LoginScenariosTests {
 
     ChromeDriver driver;
-    FluentWait wait;
+    WebDriverWait wait;
+
+
     final String BASE_URL = "http://training.skillo-bg.com:4200";
     final String HOME_URL = BASE_URL + "/posts/all";
     final String LOGIN_URL = BASE_URL + "/users/login";
     final String USER_URL = BASE_URL + "/users/4068";
 
     @DataProvider(name = "validUser")
-    public Object[][] getUser() {
+    public Object[][] getValidUser() {
         return new Object[][]{
                 {"auto_user", "auto_pass"}
+        };
+    }
+
+    @DataProvider(name = "invalidUser")
+    public Object[][] getInvalidUser() {
+        return new Object[][]{
+                {"wrong_user", "auto_pass"},
+                {"auto_user", "wrong_pass"},
+                {"", "auto_pass"},
+                {"auto_user", ""}
         };
     }
 
@@ -37,10 +50,8 @@ public class LoginScenariosTests {
         driver.manage().window().maximize();
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
-        wait = new FluentWait<>(driver);
-        wait.ignoring(NoSuchElementException.class);
-        wait.pollingEvery(Duration.ofMillis(250));
-        wait.withTimeout(Duration.ofSeconds(5));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+
     }
 
 
@@ -54,15 +65,59 @@ public class LoginScenariosTests {
 
         System.out.println("Click 'Login' button");
         WebElement loginButton = driver.findElement(By.id("nav-link-login"));
-//        wait.until(ExpectedConditions.elementToBeClickable(loginButton));
-//        loginButton.click();
         clickButton(loginButton);
 
         System.out.println("Verify that you reach login page");
+        wait.until(ExpectedConditions.urlToBe(LOGIN_URL));
+
+        System.out.println("Find 'Sign In' form");
+        WebElement signInForm = driver.findElement(By.cssSelector("form"));
+        wait.until(ExpectedConditions.visibilityOf(signInForm));
+
+        System.out.println("Populate 'Username' input");
+        WebElement usernameInputField = signInForm.findElement(By.id("defaultLoginFormUsername"));
+        wait.until(ExpectedConditions.visibilityOf(usernameInputField));
+        usernameInputField.sendKeys(username);
+
+        System.out.println("Populate 'Password' input");
+        WebElement passwordInputField = signInForm.findElement(By.id("defaultLoginFormPassword"));
+        wait.until(ExpectedConditions.visibilityOf(passwordInputField));
+        passwordInputField.sendKeys(password);
+
+        System.out.println("Click 'Sign In' button");
+        WebElement signInButton = signInForm.findElement(By.id("sign-in-button"));
+        clickButton(signInButton);
+
+        System.out.println("Verify that the user is logged in");
+        WebElement signInOutMessageBox = driver.findElement(By.id("toast-container"));
+        wait.until(ExpectedConditions.visibilityOf(signInOutMessageBox));
+        String signInOutMessageBoxText = signInOutMessageBox.getText();
+        Assert.assertEquals(signInOutMessageBoxText.trim(), "Successful login!");
+        wait.until(ExpectedConditions.invisibilityOf(signInOutMessageBox));
+        wait.until(ExpectedConditions.urlToBe(HOME_URL));
+        WebElement navBarProfileButton = driver.findElement(By.id("nav-link-profile"));
+        wait.until(ExpectedConditions.visibilityOf(navBarProfileButton));
+
+        System.out.println("Click 'Profile' button");
+        clickButton(navBarProfileButton);
+
+        System.out.println("Verify User profile page is visible");
+        wait.until(ExpectedConditions.urlToBe(USER_URL));
+        WebElement profileSectionElement = driver.findElement(By.cssSelector("app-profile-section"));
+        String userNameText = profileSectionElement.findElement(By.cssSelector("app-profile-section .profile-user-settings h2")).getText();
+        Assert.assertEquals(userNameText, username);
 
 
+        System.out.println("Click 'Sign out' button");
+        WebElement signOutButton = driver.findElement(By.cssSelector(".fa-sign-out-alt"));
+        wait.until(ExpectedConditions.elementToBeClickable(signOutButton));
+        signOutButton.click();
 
-
+        System.out.println("Verify that we are signed out of profile");
+        wait.until(ExpectedConditions.visibilityOf(signInOutMessageBox));
+        signInOutMessageBoxText = signInOutMessageBox.getText();
+        Assert.assertEquals(signInOutMessageBoxText.trim(), "Successful logout!");
+        wait.until(ExpectedConditions.invisibilityOf(navBarProfileButton));
     }
 
     @AfterMethod
