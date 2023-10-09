@@ -1,0 +1,170 @@
+package lecture15.examples;
+
+
+import io.github.bonigarcia.wdm.WebDriverManager;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
+import org.testng.annotations.*;
+import org.testng.annotations.DataProvider;
+
+import java.time.Duration;
+public class HomeworkPasswordTest {
+    ChromeDriver driver;
+    WebDriverWait wait;
+
+    final String BaseUrl = "http://training.skillo-bg.com:4200";
+    final String HomeUrl = BaseUrl + "/posts/all";
+    final String LoginUrl = BaseUrl + "/users/login";
+
+
+    @DataProvider(name = "validPassword")
+    public Object[][] getValidPassword() {
+        return new Object[][]{
+                {"auto_user", "auto_pass"},
+                {"register", "register123"}
+        };
+    }
+
+    @DataProvider(name = "invalidPassword")
+    public Object[][] getInvalidPassword() {
+        return new Object[][]{
+                {"auto_user", "notcorrectpass", "Ivalid password"},
+                {"auto_user", "", "Password cannot be empty"}
+        };
+    }
+
+    @BeforeMethod
+    public void driverSetup() {
+        WebDriverManager.chromedriver().setup();
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    }
+
+    //valid name and password
+
+    @Test(dataProvider = "validPassword")
+    public void successfulLoginTest(String username, String password) {
+
+        // Step 1: Open the home page
+        System.out.println("1. Open the home page");
+        driver.get(BaseUrl);
+
+        // Step 2: Click on the 'Login' button
+        System.out.println("2. Click on the Login button");
+        WebElement loginButton = driver.findElement(By.id("nav-link-login"));
+        clickBtn(loginButton);
+
+        // Step 3: Verify that URL is for the Login page
+        System.out.println("3. Verify that URL is for the login page");
+        wait.until(ExpectedConditions.urlToBe(LoginUrl));
+
+        // Step 4: Check if 'Sign In' form is visible
+        System.out.println("4. Check if 'Sign In' form is visible");
+        WebElement signInForm = driver.findElement(By.tagName("form"));
+        wait.until(ExpectedConditions.visibilityOf(signInForm));
+
+        // Step 5: Populate 'Username' field
+        System.out.println("5. Populate 'Username' field with valid data");
+        WebElement usernameInputField = signInForm.findElement(By.id("defaultLoginFormUsername"));
+        wait.until(ExpectedConditions.visibilityOf(usernameInputField));
+        usernameInputField.sendKeys(username);
+
+        // Step 6: Populate 'Password' field
+        System.out.println("6. Populate 'Password' field with valid data");
+        WebElement passwordInputField = signInForm.findElement(By.id("defaultLoginFormPassword"));
+        wait.until(ExpectedConditions.visibilityOf(passwordInputField));
+        passwordInputField.sendKeys(password);
+
+        // Step 7: Click 'Sign In' button
+        System.out.println("7. Click 'Sign In' button");
+        WebElement signInButton = signInForm.findElement(By.id("sign-in-button"));
+        //WebElement signInBtn = driver.findElement(By.cssSelector("button[type='submit']")); //another way for the button
+        clickBtn(signInButton);
+
+        // Step 8: Verify that the user is logged in and there is profile btn
+        System.out.println("8. Verify that the user is logged in");
+        wait.until(ExpectedConditions.urlToBe(HomeUrl));
+        WebElement profilebtn = driver.findElement(By.id("nav-link-profile"));
+        wait.until(ExpectedConditions.visibilityOf(profilebtn));
+
+        // Step 9: Click 'Profile' button
+        System.out.println("9. Click 'Profile' button");
+        clickBtn(profilebtn);
+
+        // Step 10: Verify that the username title matches the provided username
+        System.out.println("10. Username title matches the provided username");
+        WebElement usernameHeader = driver.findElement(By.cssSelector(".profile-user-settings h2"));
+        String actualUsernameTitle = usernameHeader.getText();
+        Assert.assertEquals(actualUsernameTitle, username, "Username title is incorrect");
+
+        // Step 11: Click 'Sign-out' button
+        System.out.println("11. Click 'Sign out' button");
+        WebElement signOutBtn = driver.findElement(By.cssSelector(".fa-sign-out-alt")); // by class
+        clickBtn(signOutBtn);
+
+        // Step 12: Verify that we are signed-out and sign in field is visible
+        System.out.println("12. Verify that we are signed-out and sign in field is visible");
+        // Re-find the sign-in form element
+        signInForm = driver.findElement(By.tagName("form"));
+        // Wait for the sign-in form to be visible
+        wait.until(ExpectedConditions.visibilityOf(signInForm));
+
+    }
+
+    @Test(dataProvider = "invalidPassword")
+    public void unsuccessfulLoginTest(String username, String invalidPassword, String errorMessage) {
+        System.out.println("1.Open the home page");
+        driver.get(BaseUrl);
+
+        System.out.println("2.Click on the Login button");
+        WebElement loginButton = driver.findElement(By.id("nav-link-login"));
+        clickBtn(loginButton);
+
+        System.out.println("3. Verify that URL is for the login page");
+        wait.until(ExpectedConditions.urlToBe(LoginUrl));
+
+        System.out.println("4.Check if 'Sign In' form is visible");
+        WebElement signInForm = driver.findElement(By.cssSelector("form"));
+        wait.until(ExpectedConditions.visibilityOf(signInForm));
+
+        System.out.println("5.Populate 'Username' field with valid data");
+        WebElement usernameInputField = signInForm.findElement(By.id("defaultLoginFormUsername"));
+        wait.until(ExpectedConditions.visibilityOf(usernameInputField));
+        usernameInputField.sendKeys(username);
+
+        System.out.println("6.Populate 'Password' field with invalid data");
+        WebElement passwordInputField = signInForm.findElement(By.id("defaultLoginFormPassword"));
+        wait.until(ExpectedConditions.visibilityOf(passwordInputField));
+        passwordInputField.sendKeys(invalidPassword);
+
+        System.out.println("7.Click 'Sign In' button");
+        WebElement signInBtn = signInForm.findElement(By.id("sign-in-button"));
+        clickBtn(signInBtn);
+
+        WebElement signInAndOutBox = driver.findElement(By.id("toast-container"));
+        wait.until(ExpectedConditions.visibilityOf(signInAndOutBox));
+        String signInAndOutMessage = signInAndOutBox.getText();
+        Assert.assertEquals(signInAndOutMessage, errorMessage);
+        Assert.assertEquals(driver.getCurrentUrl(), LoginUrl);
+    }
+
+    @AfterMethod
+    public void closeDriver() {
+        driver.close();
+    }
+
+    public void clickBtn (WebElement element) {
+        wait.until(ExpectedConditions.elementToBeClickable(element));
+        element.click();
+    }
+
+}
+
+
+
